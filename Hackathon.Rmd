@@ -1,0 +1,125 @@
+---
+title: "Hackathon Submission"
+author: "Gabriel Gilling, Muna Nwana"
+---
+
+```{r}
+library(RSocrata)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(readr)
+```
+
+
+```{r}
+zip.pop <- read.socrata("https://data.cityofnewyork.us/resource/pri4-ifjk.json")
+
+# checks out
+sum(as.numeric(zip.pop$pop_est))
+
+schools.attendence <- read.socrata("https://data.cityofnewyork.us/resource/xuid-t5nk.json")
+
+print(length(unique(schools.attendence$school)))
+
+# https://data.cityofnewyork.us/Education/2020-DOE-High-School-Directory/23z9-6uk9
+hs.meta <- read.socrata("https://data.cityofnewyork.us/resource/23z9-6uk9.json")
+print(length(unique(hs.meta$dbn)))
+
+# https://data.cityofnewyork.us/Education/2020-DOE-Middle-School-Directory/fdpt-nzk4
+ms.meta <- read.socrata("https://data.cityofnewyork.us/resource/fdpt-nzk4.json")
+print(length(unique(ms.meta$schooldbn)))
+
+# https://data.cityofnewyork.us/Education/2018-2019-School-Demographic-Snapshot/45j8-f6um
+demographic.snapshot <- read.socrata("https://data.cityofnewyork.us/resource/45j8-f6um.json")
+print(length(unique(demographic.snapshot$dbn)))
+
+# https://data.cityofnewyork.us/Education/2018-Pre-K-School-Directory/xck4-5xd5
+pk.meta <- read.socrata("https://data.cityofnewyork.us/resource/xck4-5xd5.json")
+```
+
+Economic need index -> higher = more need
+
+```{r}
+# filter to last year of available data
+demographic.snapshot <- demographic.snapshot %>% filter(year == "2018-19")
+```
+
+```{r}
+
+merge1 <- pk.meta %>% 
+  select(schooldbn, borough, district, accessibility, postcode, latitude, longitude, locationname) %>% 
+  rename(dbn = schooldbn, school_name = locationname)
+
+#merge1$schooltype = "pre-k"
+
+merge1$borough <- with(merge1, ifelse(borough == "Manhattan", "MANHATTAN", ifelse(borough == "Bronx", "BRONX", 
+                               ifelse(borough == "Brooklyn", "BROOKLYN", ifelse(borough == "Queens", "QUEENS",
+                             ifelse(borough == "Staten Island", "STATEN IS", borough))))))
+
+write.csv(master, "project_data_asset/master1.csv")
+
+merge2 <- ms.meta %>% 
+  select(schooldbn, district, sharedbuilding, postcode, borough, latitude, longitude, accessibility,name) %>%   
+  rename(dbn = schooldbn, school_name = name)
+
+#merge2$schooltype = "middle school"
+
+merge3 <- hs.meta %>% 
+  select(dbn,school_name, postcode,borocode, shared_space, building_code,school_accessibility) %>% 
+  rename(sharedbuilding = shared_space, borough = borocode, accessibility = school_accessibility)
+
+merge3$sharedbuilding <- ifelse(merge3$sharedbuilding == "Yes", 1, 0)
+merge3$sharedbuilding <- ifelse(is.na(merge3$sharedbuilding), 0, 1)
+
+merge3$borough <- with(merge3, ifelse(borough == "M", "MANHATTAN", ifelse(borough == "X", "BRONX", 
+                               ifelse(borough == "K", "BROOKLYN", ifelse(borough == "Q", "QUEENS",
+                             ifelse(borough == "R", "STATEN IS", borough))))))
+
+
+merge0 <- merge(merge1, merge2, by = c("dbn", "borough", "district", "accessibility", "postcode",
+                                       "latitude", "longitude"), all = T)
+
+merge00 <- merge(merge0, merge3, by = c("dbn", "borough", "postcode", "accessibility", "sharedbuilding"), all = T)
+merge00$school_name <- ifelse(is.na(merge00$school_name), merge00$school_name.x, merge00$school_name)
+merge00$school_name <- ifelse(is.na(merge00$school_name), merge00$school_name.y, merge00$school_name)
+merge00$school_name.x <- NULL
+merge00$school_name.y <- NULL
+
+master <- merge(merge00, demographic.snapshot, by = c("dbn"), all.y = T)
+
+merge4 <- zip.pop %>% 
+  select(modzcta, pop_est) %>% 
+  rename(postcode = modzcta, postcode_pop_est = pop_est)
+
+master <- merge(master, merge4, by = "postcode", all.x = T)
+
+merge5 <- overcapacity %>% 
+  select(dbn, overcap_p) 
+
+merge6 <- undercapacity %>% 
+  select(dbn, undercap_p)
+
+master <- merge(master, merge5, by = "dbn", all.x = T)
+
+master <- merge(master, merge6, by = "dbn", all.x = T)
+
+master <- master[!is.na(master$postcode),]
+
+master$school_name.x <- ifelse(is.na(master$school_name.x), master$school_name.y, master$school_name.x)
+colnames(master)[9] <- "school_name"
+master$school_name.y <- NULL
+
+master$overcap <- ifelse(is.na(master$overcap_p), 0, 1)
+master$undercap <- ifelse(is.na(master$undercap_p), 0, 1)
+
+
+write.csv(master, "project_data_asset/master_final.csv")
+```
+
+```{r}
+source(make_covid.R)
+```
+
+
+
