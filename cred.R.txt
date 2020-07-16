@@ -1,0 +1,16 @@
+{
+  "apikey": "NkC7CZuFRHo21Pv6hRof2bKpvLow4TbPt1deizXnC1C8",
+  "cos_hmac_keys": {
+    "access_key_id": "3d5e016674e746938b4ab071263cfda5",
+    "secret_access_key": "f6e0459b99bada9efe0784a56a7ca5c93cda27db2ddd56b0"
+  },
+  "endpoints": "https://control.cloud-object-storage.cloud.ibm.com/v2/endpoints",
+  "iam_apikey_description": "Auto-generated for key 3d5e0166-74e7-4693-8b4a-b071263cfda5",
+  "iam_apikey_name": "Intern-Hackathon-2020-Manager",
+  "iam_role_crn": "crn:v1:bluemix:public:iam::::serviceRole:Manager",
+  "iam_serviceid_crn": "crn:v1:bluemix:public:iam-identity::a/29c25dcb540c6649f90b3bfc7015a559::serviceid:ServiceId-bd465010-813e-4dc5-9958-ad28f8595336",
+  "resource_instance_id": "crn:v1:bluemix:public:cloud-object-storage:global:a/29c25dcb540c6649f90b3bfc7015a559:51cbd8ac-4f12-4ba6-9973-7e1f03820b07::"
+}
+
+bucket name: intern-hackathon-2020
+
